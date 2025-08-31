@@ -11,7 +11,7 @@ import { connectdb } from "./lib/db.js";
 const app = express();
 const port = process.env.PORT;
 
-
+job.start();
 app.use(express.json())
 app.use(cors());
 
