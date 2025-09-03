@@ -53,32 +53,26 @@ export default function Create() {
 
       // launch image library
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: "images",
+        mediaTypes: "Images",
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.5, // lower quality for smaller base64
         base64: true,
       });
 
-      if (!result.canceled) {
-        setImage(result.assets[0].uri);
+      if (result.assets[0].base64) {
+  const base64 = result.assets[0].base64.replace(/\s/g, "");
+  setImageBase64(base64);
+} else {
+  // otherwise, convert to base64
+  let base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  
+  base64 = base64.replace(/\s/g, ""); // clean whitespace
+  setImageBase64(base64);
+}
 
-        // if base64 is provided, use it
-
-        if (result.assets[0].base64) {
-          setImageBase64(result.assets[0].base64);
-        } else {
-          // otherwise, convert to base64
-          const base64 = await FileSystem.readAsStringAsync(
-            result.assets[0].uri,
-            {
-              encoding: FileSystem.EncodingType.Base64,
-            }
-          );
-
-          setImageBase64(base64);
-        }
-      }
     } catch (error) {
       console.error("Error picking image:", error);
       Alert.alert("Error", "There was a problem selecting your image");
