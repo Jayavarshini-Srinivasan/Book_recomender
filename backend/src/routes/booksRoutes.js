@@ -1,113 +1,111 @@
+// src/routes/booksRoutes.js
 import "dotenv/config";
 import express from "express";
-import cloudinary from "../lib/cloudinary.js";
+import { v2 as cloudinary } from "cloudinary";
 import Book from "../models/book.js";
-import authprotected from "../middleware/authmiddleware.js";
+import authProtected from "../middleware/authmiddleware.js";
+
 const router = express.Router();
 
-router.post("/", async (req,res)=>{
-    console.log("Headers:", req.headers["content-type"]);
-    console.log("Body received:", req.body);
-    try{
-      
-
-        const {title , caption , rating , image} = req.body;
-        if(!image || !title || !caption || !rating) return res.status(400).json({message:"Fill all the details"});
-
-        //upload the image to cloudinary
-        const uploadResponce = await cloudinary.uploader.upload(image);
-        const imageURL  = uploadResponce.secure_url;
-
-        //save data to database
-        const newBook = new Book({
-            title:title,
-            caption:caption,
-            rating:Number(rating),
-            image:imageURL,
-            user:req.user._id,
-        });
-        
-        await newBook.save();
-        res.status(201).json(newBook);
-
-    }catch(err){
-        console.log(`error:` , err);
-        res.status(500).json({message:err.message});
-    }
-
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-
-// get recommended books by the logged in user
-router.get("/user", authprotected, async (req, res) => {
+// ------------------- CREATE BOOK -------------------
+router.post("/", authProtected, async (req, res) => {
   try {
-    const books = await Book.find({ user: req.user._id }).sort({ createdAt: -1 }); // -1 => latest
+    const { title, caption, rating, image } = req.body;
+
+    if (!title || !caption || !rating || !image)
+      return res.status(400).json({ message: "Fill all the details" });
+
+    // Upload base64 image directly (frontend should send full data URL)
+    const uploadResponse = await cloudinary.uploader.upload(image, {
+      folder: "books",
+    });
+
+    // Save book in database
+    const newBook = new Book({
+      title,
+      caption,
+      rating: Number(rating),
+      image: uploadResponse.secure_url,
+      cloudinaryId: uploadResponse.public_id, // save for deletion
+      user: req.user._id,
+    });
+
+    await newBook.save();
+    res.status(201).json(newBook);
+  } catch (err) {
+    console.error("Error creating book:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ------------------- GET USER BOOKS -------------------
+router.get("/user", authProtected, async (req, res) => {
+  try {
+    const books = await Book.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(books);
-  } catch (error) {
-    console.error("Get user books error:", error.message);
+  } catch (err) {
+    console.error("Get user books error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// home pagination =>infinite loading
-router.get("/",authprotected, async (req,res)=>{
-    try{
-        //get deatils from user query 
-        // const response = await fetch("http://localhost:3000/api/books?page=1&limit=5");
-        const page = req.query.page || 1;
-        const limit = req.query.limit || 5;
-        const skip = (page-1)*limit;
+// ------------------- GET ALL BOOKS WITH PAGINATION -------------------
+router.get("/", authProtected, async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
-        //find the books
-        const books = await Book.find()
-            .sort({createdAt:-1})
-            .skip(skip)
-            .limit(limit)
-            .populate("user","username profile");
-        
-        const totalBooks = await Book.countDocuments();
+    const books = await Book.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "username profile");
 
-        res.status(200).send({
-            books:books,
-            currentPage:page,
-            totalBooks:totalBooks,
-            totalPages:Math.ceil(totalBooks/limit), // ceil =>round up a number (5.1 = 6)
-        });
+    const totalBooks = await Book.countDocuments();
 
-
-
-    }catch(error){
-        console.log("Error in getting all the book routes:",error);
-        res.status(500).json({message:"Internal Server Error"});
-    }
+    res.status(200).json({
+      books,
+      currentPage: page,
+      totalBooks,
+      totalPages: Math.ceil(totalBooks / limit),
+    });
+  } catch (err) {
+    console.error("Error fetching books:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
-router.delete("/:id", authprotected, async (req, res) => {
+// ------------------- DELETE BOOK -------------------
+router.delete("/:id", authProtected, async (req, res) => {
   try {
-    //find the book id 
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "Book not found" });
 
-    // check if user is the creator of the book
+    // Check ownership
     if (book.user.toString() !== req.user._id.toString())
       return res.status(401).json({ message: "Unauthorized" });
 
-    // https://res.cloudinary.com/de1rm4uto/image/upload/v1741568358/qyup61vejflxxw8igvi0.png
-    // delete image from cloduinary as well
-    if (book.img && book.img.includes("cloudinary")) {
+    // Delete image from Cloudinary
+    if (book.cloudinaryId) {
       try {
-        const publicId = book.image.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(publicId);
-      } catch (deleteError) {
-        console.log("Error deleting image from cloudinary", deleteError);
+        await cloudinary.uploader.destroy(book.cloudinaryId);
+      } catch (err) {
+        console.error("Error deleting image from Cloudinary:", err);
       }
     }
 
     await book.deleteOne();
-
     res.json({ message: "Book deleted successfully" });
-  } catch (error) {
-    console.log("Error deleting book", error);
+  } catch (err) {
+    console.error("Error deleting book:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
