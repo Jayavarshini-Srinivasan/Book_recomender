@@ -1,8 +1,8 @@
-import {create} from "zustand";
+import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {API_URL} from "../constants/api";
+import { API_URL } from "../constants/api";
 
-export const useAuthStore = create((set)=>({
+export const useAuthStore = create((set) => ({
   user: null,
   token: null,
   isLoading: false,
@@ -11,7 +11,7 @@ export const useAuthStore = create((set)=>({
   register: async (username, email, password) => {
     set({ isLoading: true });
     try {
-      const response = await fetch(`https://bookworm-sou5.onrender.com/api/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -22,11 +22,10 @@ export const useAuthStore = create((set)=>({
           password,
         }),
       });
-      
 
       const data = await response.json();
-
-      if (!response.ok) throw new Error(data.message || "Something went wrong");
+      console.log(data.message);
+      if (!response.ok) throw new Error(data || "Something went wrong");
 
       await AsyncStorage.setItem("user", JSON.stringify(data.user));
       await AsyncStorage.setItem("token", data.token);
@@ -39,36 +38,62 @@ export const useAuthStore = create((set)=>({
       return { success: false, error: error.message };
     }
   },
-    
 
-    login: async(email,password)=>{
-        set({isLoading:true});
-        try{
-            const response = await fetch(`${API_URL}/api/auth/login`,{
-                method:"POST",
-                headers:{
-                    "Content-Type":"application/json",
-                },
-                body:JSON.stringify({
-                    email,
-                    password,
-                }),
-            });
+  login: async (email, password) => {
+    set({ isLoading: true });
 
-            const data = await response.json();
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-            if(!response.ok) throw new Error(data.message || "Something went wrong");
+      const data = await response.json();
+      console.log(data);
+      if (!response.ok) throw new Error(data || "Something went wrong");
 
-            await AsyncStorage.setItem("user",JSON.stringify(data.user));
-            await AsyncStorage.setItem("token",JSON.stringify(data.token));
+      await AsyncStorage.setItem("user", JSON.stringify(data.user));
+      await AsyncStorage.setItem("token", data.token);
 
-            set({token:data.token , user:data.user, isLoading:false});
+      set({ token: data.token, user: data.user, isLoading: false });
 
-            return ({success:true});
-
-        }catch(err){
-            set({isLoading:false});
-            return({success:false,error:err.message});
-        }
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, error: error.message };
     }
+  },
+
+  checkAuth: async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userJson = await AsyncStorage.getItem("user");
+      const user = userJson ? JSON.parse(userJson) : null;
+
+      set({ 
+        token :token?token:null, //empty String is not valid
+        user : user ?? null, // undefined is null 
+      }); 
+    } catch (error) {
+      console.log("Auth check failed", error);
+    } finally {
+      set({ isCheckingAuth: false });
+    }
+  },
+
+  logout: async () => {
+    try{
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("user");
+    set({ token: null, user: null , isCheckingAuth:false});
+    }catch(error){
+      console.log("Logout failed", error);
+    }
+  },
 }));

@@ -1,33 +1,38 @@
+import "dotenv/config";
 import express from "express";
 import cloudinary from "../lib/cloudinary.js";
 import Book from "../models/book.js";
 import authprotected from "../middleware/authmiddleware.js";
-
 const router = express.Router();
 
-router.post("/",authprotected, async (req,res)=>{
+router.post("/", async (req,res)=>{
+    console.log("Headers:", req.headers["content-type"]);
+    console.log("Body received:", req.body);
     try{
+      
+
         const {title , caption , rating , image} = req.body;
         if(!image || !title || !caption || !rating) return res.status(400).json({message:"Fill all the details"});
 
         //upload the image to cloudinary
         const uploadResponce = await cloudinary.uploader.upload(image);
-        imageURL  = uploadResponce.secure_url;
+        const imageURL  = uploadResponce.secure_url;
 
         //save data to database
         const newBook = new Book({
             title:title,
             caption:caption,
-            rating:rating,
-            img:imageURL,
+            rating:Number(rating),
+            image:imageURL,
             user:req.user._id,
         });
+        
         await newBook.save();
         res.status(201).json(newBook);
 
     }catch(err){
-        console.log(`error: ${err.message}`);
-        res.status(401).json({message:err.message});
+        console.log(`error:` , err);
+        res.status(500).json({message:err.message});
     }
 
 });
@@ -55,14 +60,14 @@ router.get("/",authprotected, async (req,res)=>{
 
         //find the books
         const books = await Book.find()
-            .sort({createdAT:-1})
+            .sort({createdAt:-1})
             .skip(skip)
             .limit(limit)
             .populate("user","username profile");
         
         const totalBooks = await Book.countDocuments();
 
-        res.status(400).send({
+        res.status(200).send({
             books:books,
             currentPage:page,
             totalBooks:totalBooks,
@@ -73,7 +78,7 @@ router.get("/",authprotected, async (req,res)=>{
 
     }catch(error){
         console.log("Error in getting all the book routes:",error);
-        res.status(500).json("Internal Server Error");
+        res.status(500).json({message:"Internal Server Error"});
     }
 });
 
@@ -89,7 +94,7 @@ router.delete("/:id", authprotected, async (req, res) => {
 
     // https://res.cloudinary.com/de1rm4uto/image/upload/v1741568358/qyup61vejflxxw8igvi0.png
     // delete image from cloduinary as well
-    if (book.image && book.image.includes("cloudinary")) {
+    if (book.img && book.img.includes("cloudinary")) {
       try {
         const publicId = book.image.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(publicId);

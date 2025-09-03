@@ -12,16 +12,16 @@ router.post("/register", async(req,res)=>{
         //user field checking
         const {username,email,password} = req.body;
         if (!username || !email || !password){
-            return res.status(400).json("Fill all the Fields");
+            return res.status(400).json({message:"Fill all the Fields"});
         }
-        if (password.length < 6) return res.status(400).json("Password length shouls be greater than 6");
+        if (password.length < 6) return res.status(400).json({message:"Password length shouls be greater than 6"});
 
         // check if the user is already in the database 
         const exists_email = await User.findOne({email:email});
-        if(exists_email) return res.status(400).json("Email already exists");
+        if(exists_email) return res.status(400).json({message:"Email already exists"});
 
         const exists_username = await User.findOne({username:username});
-        if(exists_username) return res.status(400).json("Username already exists");
+        if(exists_username) return res.status(400).json({message:"Username already exists"});
 
         // create user
         const profile_pic = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
@@ -56,21 +56,22 @@ router.post("/register", async(req,res)=>{
 });
 
 router.post("/login", async(req,res)=>{
+    
     try{
         const {email , password} = req.body;
         if (!email || !password){
-            return res.status(400).json("Fill all the fields");
+            return res.status(400).json({message:"Fill all the fields"});
         }
         
         
         //check email id 
         const user = await User.findOne({email:email});
-        if(!user) return res.status(500).json("Invalid Credentials");
+        if(!user) return res.status(401).json({message:"Invalid Credentials"});
 
         // check if password is correct
         const passwordcorrect = await user.checkPassword(password);
         if(!passwordcorrect){
-            return res.status(500).json("Invalid Credentials");
+            return res.status(401).json({message:"Invalid Credentials"});
         }
         
         // generate token 
