@@ -113,7 +113,7 @@ export default function Create() {
           title,
           caption,
           rating: rating.toString(),
-          image: imageDataUrl,
+          // image: imageDataUrl,
         }),
       });
 
