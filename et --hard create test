@@ -1,0 +1,41 @@
+[33mcommit 45a82cd567fc4ce0ca007829e392985202c8cece[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Wed Sep 3 13:45:00 2025 +0530
+
+    create test
+
+[33mcommit 3fd5e16c2d5e57f0f13f0b91c9aa0fe947250817[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Wed Sep 3 13:13:48 2025 +0530
+
+    create tab
+
+[33mcommit 46aacb41146be3dd5a8196bdc3e7f89cb9dc2265[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Sun Aug 31 15:36:17 2025 +0530
+
+    cron.js login and signup
+
+[33mcommit 5928f78a681a672ccac031a634147f1ad9de684f[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Sun Aug 31 15:25:53 2025 +0530
+
+    login sign up and cron added
+
+[33mcommit 3a1709d6feaa6a67ecd4b41b2fb20a3817430449[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Fri Aug 29 21:20:27 2025 +0530
+
+    Ignore backend .env file
+
+[33mcommit cb580d08a7bcdcef208b881d6e271e1e00d58857[m
+Author: Jaya <jayavarshini.srinivasan@gmail.com>
+Date:   Fri Aug 29 20:57:59 2025 +0530
+
+    Backend Completed
+
+[33mcommit e79d9f10e7a3f287799c5f1ec4aa827a6c79b929[m
+Author: Jayavarshini-Srinivasan <sjayavarshini.aiml2024@citchennai.net>
+Date:   Fri Aug 29 21:03:26 2025 +0530
+
+    Initial commit
