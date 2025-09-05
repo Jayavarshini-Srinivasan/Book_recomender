@@ -6,7 +6,7 @@ import protectRoute from "../middleware/authmiddleware.js";
 const router = express.Router();
 
 router.post("/", protectRoute, async (req, res) => {
-  console.log("Request body:", req.body.image); // Debugging line
+  console.log("Request body:", req.body); // Debugging line
   try {
     const { title, caption, rating, image } = req.body;
 
